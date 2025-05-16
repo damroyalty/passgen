@@ -305,7 +305,7 @@ export default function App() {
     }
   };
 
-  const inputLabelStyle = {
+  const inputLabelStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     marginBottom: "0.5rem",
@@ -315,7 +315,7 @@ export default function App() {
     fontSize: "1rem",
   };
 
-  const checkboxStyle = {
+  const checkboxStyle: React.CSSProperties = {
     width: "18px",
     height: "18px",
     cursor: "pointer",
@@ -323,7 +323,7 @@ export default function App() {
     filter: "drop-shadow(0 0 3px #0f0)",
   };
 
-  const radioStyle = {
+  const radioStyle: React.CSSProperties = {
     width: "18px",
     height: "18px",
     cursor: "pointer",
@@ -459,13 +459,13 @@ export default function App() {
             { display: "upper (A-Z)", key: "upper" },
             { display: "numbers (0-9)", key: "numbers" },
             { display: "symbols (%@!&)", key: "symbols" },
-            { display: "word", key: "word" }
+            { display: "word", key: "word" },
           ] as const).map(({ display, key }) => (
             <label key={key} style={inputLabelStyle}>
               <input
                 type="checkbox"
-                checked={options[key as keyof typeof options]}
-                onChange={() => toggleOption(key as keyof typeof options)}
+                checked={options[key]}
+                onChange={() => toggleOption(key)}
                 style={checkboxStyle}
               />
               {display.charAt(0).toUpperCase() + display.slice(1)}
@@ -485,7 +485,14 @@ export default function App() {
           >
             <legend style={{ padding: "0 0.5rem" }}>Word Case</legend>
             {(["lower", "upper", "random"] as WordCase[]).map((wc) => (
-              <label key={wc} style={{ ...inputLabelStyle, display: "inline-flex", marginRight: "1.5rem" }}>
+              <label
+                key={wc}
+                style={{
+                  ...inputLabelStyle,
+                  display: "inline-flex",
+                  marginRight: "1.5rem",
+                }}
+              >
                 <input
                   type="radio"
                   name="wordcase"
@@ -581,7 +588,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Social Links Footer */}
+        {/* socials */}
         <div style={{
           position: "absolute",
           bottom: "0.5rem",
