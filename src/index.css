@@ -1,0 +1,64 @@
+:root {
+  --bg-color: #fff;
+  --text-color: #111;
+  --primary-color: #4f46e5; /* Indigo */
+  --button-bg: #e0e7ff;
+  --button-hover-bg: #c7d2fe;
+}
+
+.dark {
+  --bg-color: #121212;
+  --text-color: #eee;
+  --primary-color: #7c3aed; /* Purple-500 */
+  --button-bg: #2c2c2c;
+  --button-hover-bg: #3d3d3d;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button {
+  background-color: var(--button-bg);
+  border: none;
+  padding: 12px 24px;
+  font-weight: 600;
+  color: var(--text-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+button:hover {
+  background-color: var(--button-hover-bg);
+}
+
+input, select {
+  background-color: var(--button-bg);
+  color: var(--text-color);
+  border: 1px solid #555;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.container {
+  max-width: 400px;
+  margin: 40px auto;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  background-color: var(--button-bg);
+  transition: background-color 0.3s ease;
+}
