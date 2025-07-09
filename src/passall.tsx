@@ -15,7 +15,8 @@ const localWords = [
   "evergreen", "firefly", "glacier", "honeydew", "island",
   "jungle", "kiwi", "lighthouse", "mountain", "nebula",
   "oasis", "peacock", "quartz", "river", "starlight",
-  "tropical", "unicorn", "volcano", "whirlpool", "xenon"
+  "tropical", "unicorn", "volcano", "whirlpool", "xenon", "cats",
+  "dogs", "duck", "golf", "jazz", "owls", "moon"
 ].filter(word => word.length >= 4);
 
 type WordCase = "lower" | "upper" | "random";
@@ -34,7 +35,7 @@ function applyWordCase(word: string, caseType: WordCase) {
   return word;
 }
 
-let apiIndex = 0; // tracks next api
+let apiIndex = 0;
 
 const WORD_APIS = [
   {
@@ -133,26 +134,32 @@ async function generatePassword(
 
   if (!charSet && !options.word) return "";
 
-  if (options.word && !charSet) {
-    const word = await fetchRandomWord(length);
-    return applyWordCase(word, wordCase).slice(0, length);
-  }
-
   if (options.word) {
     const word = await fetchRandomWord(Math.min(length, 8));
     const caseAdjustedWord = applyWordCase(word, wordCase);
     const remainingLength = length - caseAdjustedWord.length;
-
-    if (remainingLength <= 0) {
+    let randomChars = "";
+    if (charSet && remainingLength > 0) {
+      randomChars = generateRandomChars(remainingLength, charSet);
+      const insertPos = Math.floor(Math.random() * (randomChars.length + 1));
+      return randomChars.slice(0, insertPos) + caseAdjustedWord + randomChars.slice(insertPos);
+    } else if (charSet && remainingLength <= 0) {
+      return caseAdjustedWord.slice(0, length);
+    } else {
       return caseAdjustedWord.slice(0, length);
     }
-
-    const randomChars = generateRandomChars(remainingLength, charSet);
-    const insertPos = Math.floor(Math.random() * (randomChars.length + 1));
-    return randomChars.slice(0, insertPos) + caseAdjustedWord + randomChars.slice(insertPos);
   }
 
   return generateRandomChars(length, charSet);
+}
+
+function caesarCipher(text: string, shift: number) {
+  return text.replace(/[a-z]/gi, (char) => {
+    const base = char >= 'a' && char <= 'z' ? 97 : 65;
+    return String.fromCharCode(
+      ((char.charCodeAt(0) - base + shift + 26) % 26) + base
+    );
+  });
 }
 
 function MatrixBackground() {
@@ -173,12 +180,13 @@ function MatrixBackground() {
     const fontSize = 16;
     const columns = Math.floor(width / fontSize);
     const drops = new Array(columns).fill(1);
+    const speeds = Array.from({ length: columns }, () => 0.2 + Math.random() * 0.3);
 
     const chars = "アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズヅブプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポqwertQWERTYUIOPASDFGHJKLZXCVBNMyuiopasdfghjkll;zxcvbnm,.[0123456789@#$%^&*()";
 
     function draw() {
       if (!ctx) return;
-      ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
       ctx.fillRect(0, 0, width, height);
 
       ctx.fillStyle = "#0F0";
@@ -187,17 +195,17 @@ function MatrixBackground() {
       for (let i = 0; i < drops.length; i++) {
         const text = chars.charAt(Math.floor(Math.random() * chars.length));
         const x = i * fontSize;
-        const y = drops[i] * fontSize;
+        const y = Math.floor(drops[i]) * fontSize;
 
         ctx.fillText(text, x, y);
 
         if (y > height && Math.random() > 0.975) {
           drops[i] = 0;
         }
-        drops[i]++;
+        drops[i] += speeds[i];
       }
 
-      animationFrameId = requestAnimationFrame(draw);
+      animationFrameId = window.requestAnimationFrame(draw);
     }
 
     draw();
@@ -272,13 +280,36 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [caesar, setCaesar] = useState(false);
+  const [caesarInput, setCaesarInput] = useState("");
+  const [caesarShift, setCaesarShift] = useState(3);
+  const [caesarVisual, setCaesarVisual] = useState<{plain: string, cipher: string} | null>(null);
 
   const outputRef = useRef<HTMLDivElement>(null);
   const copyTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleGenerate = async () => {
     setLoading(true);
-    const pwd = await generatePassword(length, options, wordCase);
+    let pwd = "";
+    setCaesarVisual(null);
+    if (caesar) {
+      let base = caesarCipher(caesarInput, caesarShift);
+      setCaesarVisual({ plain: caesarInput, cipher: base });
+      let charSet = "";
+      if (options.lower) charSet += lower;
+      if (options.upper) charSet += upper;
+      if (options.numbers) charSet += numbers;
+      if (options.symbols) charSet += symbols;
+      if (charSet && base.length < length) {
+        const extra = Array.from({length: length - base.length}, () => charSet.charAt(Math.floor(Math.random() * charSet.length))).join("");
+        const insertPos = Math.floor(Math.random() * (extra.length + 1));
+        pwd = extra.slice(0, insertPos) + base + extra.slice(insertPos);
+      } else {
+        pwd = base.slice(0, length);
+      }
+    } else {
+      pwd = await generatePassword(length, options, wordCase);
+    }
     setPassword(pwd);
     setLoading(false);
   };
@@ -305,7 +336,7 @@ export default function App() {
     }
   };
 
-  const inputLabelStyle = {
+  const inputLabelStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     marginBottom: "0.5rem",
@@ -315,7 +346,7 @@ export default function App() {
     fontSize: "1rem",
   };
 
-  const checkboxStyle = {
+  const checkboxStyle: React.CSSProperties = {
     width: "18px",
     height: "18px",
     cursor: "pointer",
@@ -323,7 +354,7 @@ export default function App() {
     filter: "drop-shadow(0 0 3px #0f0)",
   };
 
-  const radioStyle = {
+  const radioStyle: React.CSSProperties = {
     width: "18px",
     height: "18px",
     cursor: "pointer",
@@ -363,9 +394,14 @@ export default function App() {
             textShadow: "0 0 10px #0f0, 0 0 20px #0f0",
             letterSpacing: "0.1em",
             animation: "glow 2s ease-in-out infinite alternate",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
           }}
         >
-          🔐 PASS GEN
+          <img src={"/src-tauri/icons/smile.ico"} alt="icon" style={{ width: 36, height: 36, verticalAlign: 'middle', filter: 'drop-shadow(0 0 5px #0f0)' }} />
+          PASS GEN
         </h1>
         <style>
           {`
@@ -376,6 +412,25 @@ export default function App() {
               to {
                 text-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0;
               }
+            }
+            @keyframes slideDown {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            @keyframes pulse {
+              0% { opacity: 0.5; transform: translateY(-50%) scale(1); }
+              50% { opacity: 1; transform: translateY(-50%) scale(1.2); }
+              100% { opacity: 0.5; transform: translateY(-50%) scale(1); }
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
             }
           `}
         </style>
@@ -459,19 +514,199 @@ export default function App() {
             { display: "upper (A-Z)", key: "upper" },
             { display: "numbers (0-9)", key: "numbers" },
             { display: "symbols (%@!&)", key: "symbols" },
-            { display: "word", key: "word" }
+            { display: "word", key: "word" },
           ] as const).map(({ display, key }) => (
-            <label key={key} style={inputLabelStyle}>
+            <label key={key} style={{ ...inputLabelStyle, opacity: caesar && key === "word" ? 0.5 : 1 }}>
               <input
                 type="checkbox"
-                checked={options[key as keyof typeof options]}
-                onChange={() => toggleOption(key as keyof typeof options)}
+                checked={options[key]}
+                onChange={() => toggleOption(key)}
                 style={checkboxStyle}
+                disabled={caesar && key === "word"}
               />
               {display.charAt(0).toUpperCase() + display.slice(1)}
               {key === "word" && " (Include Word)"}
             </label>
           ))}
+
+          {}
+          <div style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '6px',
+            marginBottom: caesar ? '0.5rem' : '0',
+            transition: 'all 0.3s ease',
+          }}>
+            <label style={{
+              ...inputLabelStyle,
+              padding: '0.5rem',
+              borderRadius: '6px',
+              background: caesar ? 'rgba(0, 255, 0, 0.1)' : 'transparent',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  checked={caesar}
+                  onChange={() => {
+                    setCaesar((prev) => !prev);
+                    if (!caesar) {
+                      setCaesarInput('');
+                      setCaesarVisual(null);
+                    }
+                  }}
+                  style={checkboxStyle}
+                />
+                <span style={{ 
+                  position: 'relative',
+                  display: 'inline-block',
+                  transform: caesar ? 'translateX(5px)' : 'translateX(0)',
+                  transition: 'transform 0.3s ease',
+                }}>
+                  Caesar Cipher Cryptography
+                  {caesar && (
+                    <span style={{
+                      position: 'absolute',
+                      right: -20,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#0f0',
+                      fontSize: '0.8em',
+                      animation: 'pulse 1.5s infinite',
+                    }}>✦</span>
+                  )}
+                </span>
+              </div>
+              {caesar && (
+                <span style={{
+                  fontSize: '0.8rem',
+                  opacity: 0.8,
+                  marginLeft: '1rem',
+                  animation: 'fadeIn 0.5s ease',
+                }}>
+                  Shift: {caesarShift}
+                </span>
+              )}
+            </label>
+          </div>
+
+          {}
+          {caesar && (
+            <div style={{
+              marginLeft: '1rem',
+              marginTop: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              borderLeft: '2px solid #0f0',
+              paddingLeft: '1rem',
+              animation: 'slideDown 0.3s ease-out',
+            }}>
+              <div style={{ position: 'relative' }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.25rem',
+                  fontSize: '0.9rem',
+                  color: '#0f0',
+                }}>
+                  Word or phrase:
+                </label>
+                <input
+                  type="text"
+                  value={caesarInput}
+                  onChange={e => setCaesarInput(e.target.value)}
+                  placeholder="Enter text to encode"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    background: 'rgba(0, 15, 0, 0.5)',
+                    border: '1px solid #0f0',
+                    borderRadius: '4px',
+                    color: '#0f0',
+                    fontFamily: 'monospace',
+                    outline: 'none',
+                    boxShadow: '0 0 5px rgba(0, 255, 0, 0.3)',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.boxShadow = '0 0 10px #0f0';
+                    e.currentTarget.style.background = 'rgba(0, 30, 0, 0.7)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.boxShadow = '0 0 5px rgba(0, 255, 0, 0.3)';
+                    e.currentTarget.style.background = 'rgba(0, 15, 0, 0.5)';
+                  }}
+                />
+                {caesarInput && (
+                  <button
+                    onClick={() => setCaesarInput('')}
+                    style={{
+                      position: 'absolute',
+                      right: '0.5rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#0f0',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      opacity: 0.7,
+                      transition: 'opacity 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
+                    aria-label="Clear input"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.25rem',
+                  fontSize: '0.9rem',
+                  color: '#0f0',
+                }}>
+                  Shift amount:
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input
+                    type="range"
+                    min={1}
+                    max={25}
+                    value={caesarShift}
+                    onChange={e => setCaesarShift(Number(e.target.value))}
+                    style={{
+                      flex: 1,
+                      height: '8px',
+                      background: `linear-gradient(to right, #0f0 ${(caesarShift / 25) * 100}%, rgba(15, 15, 15, 0.8) ${(caesarShift / 25) * 100}%)`,
+                      borderRadius: '4px',
+                      outline: 'none',
+                      boxShadow: '0 0 5px rgba(0, 255, 0, 0.5)',
+                    }}
+                  />
+                  <span style={{
+                    minWidth: '2rem',
+                    textAlign: 'center',
+                    fontFamily: 'monospace',
+                    fontSize: '1rem',
+                    color: '#0f0',
+                    background: 'rgba(0, 15, 0, 0.5)',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid #0f0',
+                  }}>
+                    {caesarShift}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </fieldset>
 
         {options.word && (
@@ -485,7 +720,14 @@ export default function App() {
           >
             <legend style={{ padding: "0 0.5rem" }}>Word Case</legend>
             {(["lower", "upper", "random"] as WordCase[]).map((wc) => (
-              <label key={wc} style={{ ...inputLabelStyle, display: "inline-flex", marginRight: "1.5rem" }}>
+              <label
+                key={wc}
+                style={{
+                  ...inputLabelStyle,
+                  display: "inline-flex",
+                  marginRight: "1.5rem",
+                }}
+              >
                 <input
                   type="radio"
                   name="wordcase"
@@ -581,7 +823,51 @@ export default function App() {
           </div>
         )}
 
-        {/* Social Links Footer */}
+        {}
+        {caesar && caesarVisual && (
+          <div style={{
+            margin: '1rem 0',
+            padding: '1rem',
+            background: 'rgba(0, 20, 0, 0.3)',
+            borderRadius: '6px',
+            color: '#0f0',
+            fontFamily: 'monospace',
+            fontSize: '1.1rem',
+            boxShadow: '0 0 8px #0f0',
+            border: '1px solid #0f0',
+            animation: 'fadeIn 0.5s ease',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: '0.5rem',
+              paddingBottom: '0.5rem',
+              borderBottom: '1px dashed #0f0',
+            }}>
+              <span style={{ fontWeight: 'bold' }}>Caesar Cipher Cryptography</span>
+              <span style={{ opacity: 0.7 }}>Shift: {caesarShift}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: '#aaa', minWidth: '60px' }}>Plain:</span>
+                <span style={{ flex: 1 }}>{caesarVisual.plain}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: '#aaa', minWidth: '60px' }}>Cipher:</span>
+                <span style={{ 
+                  flex: 1,
+                  color: '#0f0',
+                  fontWeight: 'bold',
+                  textShadow: '0 0 5px #0f0',
+                }}>
+                  {caesarVisual.cipher}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {}
         <div style={{
           position: "absolute",
           bottom: "0.5rem",
