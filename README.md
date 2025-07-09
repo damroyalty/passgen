@@ -1,3 +1,3 @@
 # passgen
 
-made myself a random password generator
+a random password generator
